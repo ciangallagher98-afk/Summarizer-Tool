@@ -1,0 +1,19 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #111827;
+    color: #F9FAFB;
+}
+.response-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0));
+}
+/* Simple markdown-like styling */
+.prose h1, .prose h2, .prose h3 { margin-top: 1.2em; margin-bottom: 0.5em; font-weight: 600; }
+.prose p { margin-bottom: 1em; }
+.prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+.prose strong { font-weight: 700; }
