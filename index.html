@@ -8,8 +8,198 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS for reading XLS files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Google AI SDK -->
-    <script type="module" src="https://sdk.vercel.ai/ai.js"></script>
+    
+    <!-- *** SDK IMPORT FIXED *** -->
+    <!-- Replaced the Vercel SDK with the official Google AI ESM module -->
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+        
+        // --- CRITICAL: PASTE YOUR API KEY HERE ---
+        const GEMINI_API_KEY = "AIzaSyDNXa4wocXw7isdc43yyeQnOLVA529rDr8";
+        // -----------------------------------------
+
+        // All JavaScript code is now inside this module script
+        const fileInput = document.getElementById('file-upload');
+        const fileStatus = document.getElementById('file-status');
+        const promptInput = document.getElementById('prompt-input');
+        const generateBtn = document.getElementById('generate-btn');
+        const buttonText = document.getElementById('button-text');
+        const buttonIcon = document.getElementById('button-icon');
+        
+        const resultsContainer = document.getElementById('results-container');
+        const summaryResponseEl = document.getElementById('summary-response');
+
+        let parsedData = null; // This will hold the text content of the XLS file
+
+        // Listen for file selection
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                parsedData = null;
+                fileStatus.classList.add('hidden');
+                return;
+            }
+
+            fileStatus.textContent = 'Reading file...';
+            fileStatus.classList.remove('hidden');
+            fileStatus.classList.remove('text-red-400');
+            fileStatus.classList.add('text-gray-400');
+
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Get the first sheet
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert sheet to CSV format
+                    // CSV is a simple, text-based format that the LLM can easily understand.
+                    const csvData = XLSX.utils.sheet_to_csv(worksheet);
+                    parsedData = csvData;
+
+                    fileStatus.textContent = `Successfully loaded: ${file.name}`;
+                    fileStatus.classList.remove('text-gray-400');
+                    fileStatus.classList.add('text-green-400');
+
+                } catch (error) {
+                    console.error('Error parsing XLS file:', error);
+                    fileStatus.textContent = 'Error: Could not read file. Please ensure it is a valid .xls or .xlsx file.';
+                    fileStatus.classList.remove('text-gray-400');
+                    fileStatus.classList.add('text-red-400');
+                    parsedData = null;
+                }
+            };
+
+            reader.onerror = () => {
+                 fileStatus.textContent = 'Error reading file.';
+                 fileStatus.classList.add('text-red-400');
+                 parsedData = null;
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Listen for generate button click
+        generateBtn.addEventListener('click', handleGeneration);
+
+        async function handleGeneration() {
+            const brief = promptInput.value.trim();
+
+            if (GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
+                // Updated to use a non-blocking custom alert
+                showCustomAlert('Please paste your Gemini API key into the index.html file to use this tool.');
+                return;
+            }
+
+            if (!parsedData) {
+                showCustomAlert('Please upload an XLS or XLSX file first.');
+                return;
+            }
+
+            if (!brief) {
+                showCustomAlert('Please provide a brief for the AI.');
+                return;
+            }
+
+            setLoadingState(true);
+            resultsContainer.classList.remove('hidden');
+            summaryResponseEl.innerHTML = '<p>Generating insights... This may take a moment.</p>';
+
+            try {
+                const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+                // Construct the master prompt
+                const masterPrompt = `
+                    You are an expert data analyst specializing in content and media. 
+                    A user has provided a dataset (in CSV format) from an Excel file and a brief. 
+                    Your task is to analyze the data and provide a summary that directly answers the user's brief.
+
+                    The dataset will likely contain columns for dates and text content (like social posts or articles). 
+                    Please pay close attention to any dates, as time-based analysis might be requested.
+
+                    Base your entire analysis *only* on the data provided.
+                    Format your output using markdown (like headings, bullet points, and bold text) for readability.
+
+                    ---
+                    USER'S BRIEF:
+                    "${brief}"
+                    ---
+                    DATASET (from Excel file, in CSV format):
+                    ${parsedData}
+                    ---
+
+                    Please provide your analysis now.
+                `;
+
+                const result = await model.generateContent(masterPrompt);
+                const response = await result.response;
+                
+                // Basic markdown to HTML conversion
+                let summaryText = response.text();
+                summaryText = summaryText.replace(/### (.*)/g, '<h3 class="text-lg font-semibold mb-2 mt-4">$1</h3>'); // h3
+                summaryText = summaryText.replace(/## (.*)/g, '<h2 class="text-xl font-semibold mb-3 mt-5">$1</h2>'); // h2
+                summaryText = summaryText.replace(/# (.*)/g, '<h1 class="text-2xl font-bold mb-4 mt-6">$1</h1>'); // h1
+                summaryText = summaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+                summaryText = summaryText.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+                summaryText = summaryText.replace(/^- (.*)/gm, '<li class="ml-4">$1</li>'); // List items
+                summaryText = summaryText.replace(/<li>(.*?)<\/li>/g, '<ul><li>$1</li></ul>'); // Wrap lists
+                summaryText = summaryText.replace(/<\/ul>\n<ul>/g, ''); // Fix consecutive lists
+                summaryText = summaryText.replace(/\n/g, '<br>'); // Newlines
+                summaryText = summaryText.replace(/<br><ul>/g, '<ul>'); // Fix list spacing
+                summaryText = summaryText.replace(/<\/ul><br>/g, '</ul>'); // Fix list spacing
+                
+                summaryResponseEl.innerHTML = summaryText;
+
+            } catch (error) {
+                console.error('Error fetching insights from Gemini:', error);
+                summaryResponseEl.innerHTML = `<p class="text-red-400">An error occurred while contacting the Gemini API. Please check your API key and that billing is enabled for your Google project.</p>`;
+            } finally {
+                setLoadingState(false);
+            }
+        }
+        
+        function setLoadingState(isLoading) {
+            generateBtn.disabled = isLoading;
+            // Use Tailwind classes for disabled state
+            generateBtn.classList.toggle('disabled:opacity-50', isLoading);
+            generateBtn.classList.toggle('disabled:cursor-not-allowed', isLoading);
+            
+            buttonText.textContent = isLoading ? 'Analyzing...' : 'Generate Summary';
+            buttonIcon.innerHTML = isLoading ? `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>` : `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
+        }
+
+        // Custom non-blocking alert function
+        function showCustomAlert(message) {
+            let alertBox = document.getElementById('custom-alert');
+            if (!alertBox) {
+                alertBox = document.createElement('div');
+                alertBox.id = 'custom-alert';
+                alertBox.className = 'fixed top-5 right-5 max-w-sm bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300 ease-out';
+                alertBox.innerHTML = `<p>${message}</p>`;
+                document.body.appendChild(alertBox);
+            } else {
+                alertBox.innerHTML = `<p>${message}</p>`;
+            }
+
+            // Animate in
+            setTimeout(() => {
+                alertBox.classList.remove('translate-x-full');
+                alertBox.classList.add('translate-x-0');
+            }, 10);
+
+            // Animate out after 3 seconds
+            setTimeout(() => {
+                alertBox.classList.remove('translate-x-0');
+                alertBox.classList.add('translate-x-full');
+            }, 3000);
+        }
+    </script>
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -184,193 +374,8 @@
         </main>
     </div>
 
-<script type="module">
-    import { GoogleGenerativeAI } from 'https://sdk.vercel.ai/ai.js';
-
-    // --- CRITICAL: PASTE YOUR API KEY HERE ---
-    const GEMINI_API_KEY = "AIzaSyDNXa4wocXw7isdc43yyeQnOLVA529rDr8";
-    // -----------------------------------------
-
-    const fileInput = document.getElementById('file-upload');
-    const fileStatus = document.getElementById('file-status');
-    const promptInput = document.getElementById('prompt-input');
-    const generateBtn = document.getElementById('generate-btn');
-    const buttonText = document.getElementById('button-text');
-    const buttonIcon = document.getElementById('button-icon');
-    
-    const resultsContainer = document.getElementById('results-container');
-    const summaryResponseEl = document.getElementById('summary-response');
-
-    let parsedData = null; // This will hold the text content of the XLS file
-
-    // Listen for file selection
-    fileInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) {
-            parsedData = null;
-            fileStatus.classList.add('hidden');
-            return;
-        }
-
-        fileStatus.textContent = 'Reading file...';
-        fileStatus.classList.remove('hidden');
-        fileStatus.classList.remove('text-red-400');
-        fileStatus.classList.add('text-gray-400');
-
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                // Get the first sheet
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                // Convert sheet to CSV format
-                // CSV is a simple, text-based format that the LLM can easily understand.
-                const csvData = XLSX.utils.sheet_to_csv(worksheet);
-                parsedData = csvData;
-
-                fileStatus.textContent = `Successfully loaded: ${file.name}`;
-                fileStatus.classList.remove('text-gray-400');
-                fileStatus.classList.add('text-green-400');
-
-            } catch (error) {
-                console.error('Error parsing XLS file:', error);
-                fileStatus.textContent = 'Error: Could not read file. Please ensure it is a valid .xls or .xlsx file.';
-                fileStatus.classList.remove('text-gray-400');
-                fileStatus.classList.add('text-red-400');
-                parsedData = null;
-            }
-        };
-
-        reader.onerror = () => {
-             fileStatus.textContent = 'Error reading file.';
-             fileStatus.classList.add('text-red-400');
-             parsedData = null;
-        };
-
-        reader.readAsArrayBuffer(file);
-    });
-
-    // Listen for generate button click
-    generateBtn.addEventListener('click', handleGeneration);
-
-    async function handleGeneration() {
-        const brief = promptInput.value.trim();
-
-        if (GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
-            // Updated to use a non-blocking custom alert
-            showCustomAlert('Please paste your Gemini API key into the index.html file to use this tool.');
-            return;
-        }
-
-        if (!parsedData) {
-            showCustomAlert('Please upload an XLS or XLSX file first.');
-            return;
-        }
-
-        if (!brief) {
-            showCustomAlert('Please provide a brief for the AI.');
-            return;
-        }
-
-        setLoadingState(true);
-        resultsContainer.classList.remove('hidden');
-        summaryResponseEl.innerHTML = '<p>Generating insights... This may take a moment.</p>';
-
-        try {
-            const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-            // Construct the master prompt
-            const masterPrompt = `
-                You are an expert data analyst specializing in content and media. 
-                A user has provided a dataset (in CSV format) from an Excel file and a brief. 
-                Your task is to analyze the data and provide a summary that directly answers the user's brief.
-
-                The dataset will likely contain columns for dates and text content (like social posts or articles). 
-                Please pay close attention to any dates, as time-based analysis might be requested.
-
-                Base your entire analysis *only* on the data provided.
-                Format your output using markdown (like headings, bullet points, and bold text) for readability.
-
-                ---
-                USER'S BRIEF:
-                "${brief}"
-                ---
-                DATASET (from Excel file, in CSV format):
-                ${parsedData}
-                ---
-
-                Please provide your analysis now.
-            `;
-
-            const result = await model.generateContent(masterPrompt);
-            const response = await result.response;
-            
-            // Basic markdown to HTML conversion
-            let summaryText = response.text();
-            summaryText = summaryText.replace(/### (.*)/g, '<h3 class="text-lg font-semibold mb-2 mt-4">$1</h3>'); // h3
-            summaryText = summaryText.replace(/## (.*)/g, '<h2 class="text-xl font-semibold mb-3 mt-5">$1</h2>'); // h2
-            summaryText = summaryText.replace(/# (.*)/g, '<h1 class="text-2xl font-bold mb-4 mt-6">$1</h1>'); // h1
-            summaryText = summaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
-            summaryText = summaryText.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
-            summaryText = summaryText.replace(/^- (.*)/gm, '<li class="ml-4">$1</li>'); // List items
-            summaryText = summaryText.replace(/<li>(.*?)<\/li>/g, '<ul><li>$1</li></ul>'); // Wrap lists
-            summaryText = summaryText.replace(/<\/ul>\n<ul>/g, ''); // Fix consecutive lists <-- This was the typo (was summaryType)
-            summaryText = summaryText.replace(/\n/g, '<br>'); // Newlines
-            summaryText = summaryText.replace(/<br><ul>/g, '<ul>'); // Fix list spacing
-            summaryText = summaryText.replace(/<\/ul><br>/g, '</ul>'); // Fix list spacing
-            
-            summaryResponseEl.innerHTML = summaryText;
-
-        } catch (error) {
-            console.error('Error fetching insights from Gemini:', error);
-            summaryResponseEl.innerHTML = `<p class="text-red-400">An error occurred while contacting the Gemini API. Please check your API key and that billing is enabled for your Google project.</p>`;
-        } finally {
-            setLoadingState(false);
-        }
-    }
-    
-    function setLoadingState(isLoading) {
-        generateBtn.disabled = isLoading;
-        // Use Tailwind classes for disabled state
-        generateBtn.classList.toggle('disabled:opacity-50', isLoading);
-        generateBtn.classList.toggle('disabled:cursor-not-allowed', isLoading);
-        
-        buttonText.textContent = isLoading ? 'Analyzing...' : 'Generate Summary';
-        buttonIcon.innerHTML = isLoading ? `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>` : `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
-    }
-
-    // Custom non-blocking alert function
-    function showCustomAlert(message) {
-        let alertBox = document.getElementById('custom-alert');
-        if (!alertBox) {
-            alertBox = document.createElement('div');
-            alertBox.id = 'custom-alert';
-            alertBox.className = 'fixed top-5 right-5 max-w-sm bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300 ease-out';
-            alertBox.innerHTML = `<p>${message}</p>`;
-            document.body.appendChild(alertBox);
-        } else {
-            alertBox.innerHTML = `<p>${message}</p>`;
-        }
-
-        // Animate in
-        setTimeout(() => {
-            alertBox.classList.remove('translate-x-full');
-            alertBox.classList.add('translate-x-0'); // <-- This was the typo (was .Add)
-        }, 10);
-
-        // Animate out after 3 seconds
-        setTimeout(() => {
-            alertBox.classList.remove('translate-x-0');
-            alertBox.classList.add('translate-x-full');
-        }, 3000);
-    }
-</script>
+<!-- This <script> tag was removed as it was a duplicate and incorrect -->
+<!-- <script type="module" src="https://sdk.vercel.ai/ai.js"></script> -->
 
 </body>
 </html>
