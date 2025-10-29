@@ -14,13 +14,39 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Custom Styles (from your canvas) -->
+    
+    <!-- *** UPDATED STYLES *** -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827;
+            /* Added a subtle gradient background */
+            background-color: #0f172a; /* slate-900 */
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 20px 20px;
             color: #F9FAFB;
         }
+
+        /* Gradient glow for the header */
+        .header-glow {
+            color: white;
+            text-shadow: 0 0 15px rgba(59, 130, 246, 0.4); /* Blue-500 glow */
+        }
+        
+        .header-subtext-glow {
+            color: #9ca3af; /* gray-400 */
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Enhanced card styling */
+        .response-card {
+            background-color: rgba(15, 23, 42, 0.6); /* slate-900 with alpha */
+            border: 1px solid #1e293b; /* slate-800 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        /* Card border glow */
         .response-card::before {
             content: '';
             position: absolute;
@@ -28,69 +54,128 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0));
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(59, 130, 246, 0.7), /* blue-500 */
+                transparent
+            );
+            opacity: 0.7;
         }
-        /* Simple markdown-like styling */
-        .prose h1, .prose h2, .prose h3 { margin-top: 1.2em; margin-bottom: 0.5em; font-weight: 600; }
-        .prose p { margin-bottom: 1em; }
-        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
-        .prose strong { font-weight: 700; }
         
-        /* File input styling */
+        /* Enhanced input focus */
+        textarea:focus {
+            border-color: #3b82f6 !important; /* blue-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            outline: none;
+        }
+
+        /* Enhanced file input button */
         input[type="file"]::file-selector-button {
             border-radius: 0.375rem; /* rounded-md */
             padding-left: 1rem;
             padding-right: 1rem;
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
-            font-weight: 500; /* font-medium */
-            background-color: #374151; /* bg-gray-700 */
+            font-weight: 600; /* font-semibold */
+            background-color: #334155; /* slate-700 */
             color: white;
-            border: 1px solid #4B5563; /* border-gray-600 */
+            border: 1px solid #1e293b; /* slate-800 */
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
         input[type="file"]::file-selector-button:hover {
-            background-color: #4B5563; /* bg-gray-600 */
+            background-color: #475569; /* slate-600 */
+            border-color: #334155; /* slate-700 */
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Enhanced generate button */
+        #generate-btn {
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+        #generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.4);
+        }
+        #generate-btn:disabled {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Custom Prose (markdown) styling */
+        .prose {
+            color: #d1d5db; /* gray-300 */
+        }
+        .prose h1, .prose h2, .prose h3 { 
+            margin-top: 1.2em; 
+            margin-bottom: 0.5em; 
+            font-weight: 700; 
+            color: #ffffff; /* white */
+            border-bottom: 1px solid #334155; /* slate-700 */
+            padding-bottom: 0.3em;
+        }
+        .prose p { margin-bottom: 1.2em; line-height: 1.7; }
+        .prose ul { 
+            list-style-type: disc; 
+            margin-left: 1.5em; 
+            margin-bottom: 1em; 
+            padding-left: 0.5em;
+        }
+        .prose li {
+            margin-bottom: 0.5em;
+        }
+        .prose strong { 
+            font-weight: 700; 
+            color: #ffffff; /* white */
+        }
+        .prose a {
+            color: #60a5fa; /* blue-400 */
+            text-decoration: underline;
+            transition: color 0.2s;
+        }
+        .prose a:hover {
+            color: #93c5fd; /* blue-300 */
         }
     </style>
 </head>
 <body class="antialiased">
     <div class="container mx-auto px-4 py-8 md:py-12">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">AI Data Summarizer</h1>
-            <p class="text-lg text-gray-400 max-w-2xl mx-auto">Upload an XLS file and provide a brief to get an instant AI-powered summary.</p>
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3 header-glow">AI Data Summarizer</h1>
+            <p class="text-lg text-gray-400 max-w-2xl mx-auto header-subtext-glow">Upload an XLS file and provide a brief to get an instant AI-powered summary.</p>
         </header>
 
         <main class="max-w-3xl mx-auto">
             <!-- Step 1: File Upload -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-300 mb-2" for="file-upload">
+            <div class="mb-6 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
+                <label class="block text-sm font-semibold text-gray-200 mb-2" for="file-upload">
                     Step 1: Upload your .xls or .xlsx file
                 </label>
                 <input id="file-upload" type="file" accept=".xls,.xlsx" class="block w-full text-sm text-gray-400 file:mr-4">
-                <p id="file-status" class="text-sm text-green-400 mt-2 hidden"></p>
+                <p id="file-status" class="text-sm text-green-400 mt-3 hidden"></p>
             </div>
 
             <!-- Step 2: Brief Input -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-300 mb-2" for="prompt-input">
+            <div class="mb-6 p-4 bg-slate-800/30 rounded-lg border border-slate-700">
+                <label class="block text-sm font-semibold text-gray-200 mb-2" for="prompt-input">
                     Step 2: Write your brief
                 </label>
-                <textarea id="prompt-input" rows="4" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 'What are the key sales trends?' or 'Summarize the main findings in this report.'"></textarea>
+                <textarea id="prompt-input" rows="4" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-4 text-white placeholder-gray-500 transition-all duration-300 focus:outline-none" placeholder="e.g., 'What are the key sales trends?' or 'Summarize the main findings in this report.'"></textarea>
             </div>
 
             <!-- Step 3: Generate Button -->
-            <button id="generate-btn" class="mb-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 flex items-center justify-center">
+            <button id="generate-btn" class="mb-10 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
                 <svg id="button-icon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 <span id="button-text">Generate Summary</span>
             </button>
 
             <!-- Step 4: Results -->
             <div id="results-container" class="space-y-8 hidden">
-                <div id="summary-card" class="bg-gray-800/50 border border-gray-700 rounded-lg p-6 relative response-card">
+                <div id="summary-card" class="rounded-lg p-6 relative response-card">
                     <div class="flex items-center mb-4">
-                        <svg class="w-6 h-6 mr-3 text-yellow-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        <svg class="w-6 h-6 mr-3 text-blue-400" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.25C6.63604 2.25 2.25 6.63604 2.25 12C2.25 17.364 6.63604 21.75 12 21.75C17.364 21.75 21.75 17.364 21.75 12C21.75 6.63604 17.364 2.25 12 2.25ZM12 4.25C16.2843 4.25 19.75 7.71573 19.75 12C19.75 16.2843 16.2843 19.75 12 19.75C7.71573 19.75 4.25 16.2843 4.25 12C4.25 7.71573 7.71573 4.25 12 4.25ZM11.25 7.5C11.25 7.08579 11.5858 6.75 12 6.75C12.4142 6.75 12.75 7.08579 12.75 7.5V11.25C12.75 11.6642 12.4142 12 12 12C11.5858 12 11.25 11.6642 11.25 11.25V7.5ZM12 16.5C12.4142 16.5 12.75 16.1642 12.75 15.75C12.75 15.3358 12.4142 15 12 15C11.5858 15 11.25 15.3358 11.25 15.75C11.25 16.1642 11.5858 16.5 12 16.5Z"></path></svg>
                         <h3 class="text-xl font-semibold text-white">AI Generated Summary</h3>
                     </div>
                     <div id="summary-response" class="text-gray-300 prose max-w-none"><p>Your summary will appear here...</p></div>
@@ -177,17 +262,18 @@
         const brief = promptInput.value.trim();
 
         if (GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
-            alert('Please paste your Gemini API key into the index.html file to use this tool.');
+            // Updated to use a non-blocking custom alert
+            showCustomAlert('Please paste your Gemini API key into the index.html file to use this tool.');
             return;
         }
 
         if (!parsedData) {
-            alert('Please upload an XLS or XLSX file first.');
+            showCustomAlert('Please upload an XLS or XLSX file first.');
             return;
         }
 
         if (!brief) {
-            alert('Please provide a brief for the AI.');
+            showCustomAlert('Please provide a brief for the AI.');
             return;
         }
 
@@ -204,6 +290,7 @@
                 You are an expert data analyst. A user has provided a dataset (in CSV format) from an Excel file and a brief. 
                 Your task is to analyze the data and provide a summary that directly answers the user's brief.
                 Base your entire analysis *only* on the data provided.
+                Format your output using markdown (like headings, bullet points, and bold text) for readability.
 
                 ---
                 USER'S BRIEF:
@@ -218,7 +305,20 @@
 
             const result = await model.generateContent(masterPrompt);
             const response = await result.response;
-            const summaryText = response.text().replace(/\n/g, '<br>'); // Simple HTML formatting
+            
+            // Basic markdown to HTML conversion
+            let summaryText = response.text();
+            summaryText = summaryText.replace(/### (.*)/g, '<h3 class="text-lg font-semibold mb-2 mt-4">$1</h3>'); // h3
+            summaryText = summaryText.replace(/## (.*)/g, '<h2 class="text-xl font-semibold mb-3 mt-5">$1</h2>'); // h2
+            summaryText = summaryText.replace(/# (.*)/g, '<h1 class="text-2xl font-bold mb-4 mt-6">$1</h1>'); // h1
+            summaryText = summaryText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+            summaryText = summaryText.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+            summaryText = summaryText.replace(/^- (.*)/gm, '<li class="ml-4">$1</li>'); // List items
+            summaryText = summaryText.replace(/<li>(.*?)<\/li>/g, '<ul><li>$1</li></ul>'); // Wrap lists
+            summaryText = summaryText.replace(/<\/ul>\n<ul>/g, ''); // Fix consecutive lists
+            summaryText = summaryText.replace(/\n/g, '<br>'); // Newlines
+            summaryText = summaryText.replace(/<br><ul>/g, '<ul>'); // Fix list spacing
+            summaryText = summaryText.replace(/<\/ul><br>/g, '</ul>'); // Fix list spacing
             
             summaryResponseEl.innerHTML = summaryText;
 
@@ -232,10 +332,38 @@
     
     function setLoadingState(isLoading) {
         generateBtn.disabled = isLoading;
-        generateBtn.classList.toggle('opacity-50', isLoading);
-        generateBtn.classList.toggle('cursor-not-allowed', isLoading);
+        // Use Tailwind classes for disabled state
+        generateBtn.classList.toggle('disabled:opacity-50', isLoading);
+        generateBtn.classList.toggle('disabled:cursor-not-allowed', isLoading);
+        
         buttonText.textContent = isLoading ? 'Analyzing...' : 'Generate Summary';
         buttonIcon.innerHTML = isLoading ? `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>` : `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
+    }
+
+    // Custom non-blocking alert function
+    function showCustomAlert(message) {
+        let alertBox = document.getElementById('custom-alert');
+        if (!alertBox) {
+            alertBox = document.createElement('div');
+            alertBox.id = 'custom-alert';
+            alertBox.className = 'fixed top-5 right-5 max-w-sm bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300 ease-out';
+            alertBox.innerHTML = `<p>${message}</p>`;
+            document.body.appendChild(alertBox);
+        } else {
+            alertBox.innerHTML = `<p>${message}</p>`;
+        }
+
+        // Animate in
+        setTimeout(() => {
+            alertBox.classList.remove('translate-x-full');
+            alertBox.classList.add('translate-x-0');
+        }, 10);
+
+        // Animate out after 3 seconds
+        setTimeout(() => {
+            alertBox.classList.remove('translate-x-0');
+            alertBox.classList.add('translate-x-full');
+        }, 3000);
     }
 </script>
 
