@@ -287,8 +287,13 @@
 
             // Construct the master prompt
             const masterPrompt = `
-                You are an expert data analyst. A user has provided a dataset (in CSV format) from an Excel file and a brief. 
+                You are an expert data analyst specializing in content and media. 
+                A user has provided a dataset (in CSV format) from an Excel file and a brief. 
                 Your task is to analyze the data and provide a summary that directly answers the user's brief.
+
+                The dataset will likely contain columns for dates and text content (like social posts or articles). 
+                Please pay close attention to any dates, as time-based analysis might be requested.
+
                 Base your entire analysis *only* on the data provided.
                 Format your output using markdown (like headings, bullet points, and bold text) for readability.
 
@@ -356,7 +361,7 @@
         // Animate in
         setTimeout(() => {
             alertBox.classList.remove('translate-x-full');
-            alertBox.classList.add('translate-x-0');
+            alertBox.classList.Add('translate-x-0');
         }, 10);
 
         // Animate out after 3 seconds
