@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Arena: LLM Insights</title>
+    <title>XLS Data Summarizer</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for reading XLS files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Google AI SDK -->
     <script type="module" src="https://sdk.vercel.ai/ai.js"></script>
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles (from your canvas) -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -31,52 +35,65 @@
         .prose p { margin-bottom: 1em; }
         .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
         .prose strong { font-weight: 700; }
+        
+        /* File input styling */
+        input[type="file"]::file-selector-button {
+            border-radius: 0.375rem; /* rounded-md */
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            font-weight: 500; /* font-medium */
+            background-color: #374151; /* bg-gray-700 */
+            color: white;
+            border: 1px solid #4B5563; /* border-gray-600 */
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #4B5563; /* bg-gray-600 */
+        }
     </style>
 </head>
 <body class="antialiased">
     <div class="container mx-auto px-4 py-8 md:py-12">
         <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">Gemini Arena</h1>
-            <p class="text-lg text-gray-400 max-w-2xl mx-auto">Ask any product or brand question to get an instant analysis and Share of Voice (SOV) powered by Gemini.</p>
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">AI Data Summarizer</h1>
+            <p class="text-lg text-gray-400 max-w-2xl mx-auto">Upload an XLS file and provide a brief to get an instant AI-powered summary.</p>
         </header>
 
-        <main>
-            <div class="max-w-2xl mx-auto mb-8">
-                <div class="relative">
-                    <textarea id="prompt-input" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none" placeholder="e.g., What are the best running shoes right now?"></textarea>
-                </div>
-                <button id="generate-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 flex items-center justify-center">
-                    <svg id="button-icon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    <span id="button-text">Generate Insights</span>
-                </button>
+        <main class="max-w-3xl mx-auto">
+            <!-- Step 1: File Upload -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2" for="file-upload">
+                    Step 1: Upload your .xls or .xlsx file
+                </label>
+                <input id="file-upload" type="file" accept=".xls,.xlsx" class="block w-full text-sm text-gray-400 file:mr-4">
+                <p id="file-status" class="text-sm text-green-400 mt-2 hidden"></p>
             </div>
 
-            <div id="results-container" class="space-y-8">
-                <!-- Gemini Column -->
-                <div id="gemini-card" class="bg-gray-800/50 border border-gray-700 rounded-lg p-6 relative response-card hidden">
-                    <div class="flex items-center mb-4">
-                         <svg class="w-6 h-6 mr-3 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-2.5-3.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm5 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg>
-                        <h3 class="text-xl font-semibold text-white">Gemini Response</h3>
-                    </div>
-                    <div id="gemini-response" class="text-gray-300 prose max-w-none"><p>Enter a prompt to get a live answer from Gemini.</p></div>
-                </div>
+            <!-- Step 2: Brief Input -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2" for="prompt-input">
+                    Step 2: Write your brief
+                </label>
+                <textarea id="prompt-input" rows="4" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g., 'What are the key sales trends?' or 'Summarize the main findings in this report.'"></textarea>
+            </div>
 
-                <!-- Insights Section -->
-                <div id="insights-section" class="grid grid-cols-1 md:grid-cols-5 gap-8 hidden">
-                    <div id="sov-card" class="md:col-span-2 bg-gray-800/50 border border-gray-700 rounded-lg p-6 relative response-card">
-                         <div class="flex items-center mb-4">
-                            <svg class="w-6 h-6 mr-3 text-purple-400" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-                            <h3 class="text-xl font-semibold text-white">Share of Voice</h3>
-                        </div>
-                        <canvas id="sov-chart"></canvas>
+            <!-- Step 3: Generate Button -->
+            <button id="generate-btn" class="mb-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 flex items-center justify-center">
+                <svg id="button-icon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span id="button-text">Generate Summary</span>
+            </button>
+
+            <!-- Step 4: Results -->
+            <div id="results-container" class="space-y-8 hidden">
+                <div id="summary-card" class="bg-gray-800/50 border border-gray-700 rounded-lg p-6 relative response-card">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-6 h-6 mr-3 text-yellow-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        <h3 class="text-xl font-semibold text-white">AI Generated Summary</h3>
                     </div>
-                     <div id="summary-card" class="md:col-span-3 bg-gray-800/50 border border-gray-700 rounded-lg p-6 relative response-card">
-                         <div class="flex items-center mb-4">
-                           <svg class="w-6 h-6 mr-3 text-yellow-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                            <h3 class="text-xl font-semibold text-white">Insights Summary</h3>
-                        </div>
-                        <div id="summary-response" class="text-gray-300 prose max-w-none"><p>An AI-generated summary of the key takeaways will appear here.</p></div>
-                    </div>
+                    <div id="summary-response" class="text-gray-300 prose max-w-none"><p>Your summary will appear here...</p></div>
                 </div>
             </div>
         </main>
@@ -89,90 +106,135 @@
     const GEMINI_API_KEY = "AIzaSyDNXa4wocXw7isdc43yyeQnOLVA529rDr8";
     // -----------------------------------------
 
+    const fileInput = document.getElementById('file-upload');
+    const fileStatus = document.getElementById('file-status');
     const promptInput = document.getElementById('prompt-input');
     const generateBtn = document.getElementById('generate-btn');
     const buttonText = document.getElementById('button-text');
     const buttonIcon = document.getElementById('button-icon');
     
-    const insightsSection = document.getElementById('insights-section');
-    const geminiCard = document.getElementById('gemini-card');
-    const geminiResponseEl = document.getElementById('gemini-response');
+    const resultsContainer = document.getElementById('results-container');
     const summaryResponseEl = document.getElementById('summary-response');
 
-    const sovCard = document.getElementById('sov-card');
-    const sovChartEl = document.getElementById('sov-chart');
-    let sovChart = null;
+    let parsedData = null; // This will hold the text content of the XLS file
 
-    const sovData = {
-        "running shoes": { labels: ["Hoka", "Nike", "ASICS", "On Running", "New Balance"], data: [35, 25, 18, 15, 7] },
-        "smartphones": { labels: ["Apple iPhone", "Samsung Galaxy", "Google Pixel", "OnePlus"], data: [55, 28, 12, 5] },
-        "gaming consoles": { labels: ["PlayStation 5", "Nintendo Switch", "Xbox Series X"], data: [45, 35, 20] }
-    };
-    
+    // Listen for file selection
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            parsedData = null;
+            fileStatus.classList.add('hidden');
+            return;
+        }
+
+        fileStatus.textContent = 'Reading file...';
+        fileStatus.classList.remove('hidden');
+        fileStatus.classList.remove('text-red-400');
+        fileStatus.classList.add('text-gray-400');
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Get the first sheet
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Convert sheet to CSV format
+                // CSV is a simple, text-based format that the LLM can easily understand.
+                const csvData = XLSX.utils.sheet_to_csv(worksheet);
+                parsedData = csvData;
+
+                fileStatus.textContent = `Successfully loaded: ${file.name}`;
+                fileStatus.classList.remove('text-gray-400');
+                fileStatus.classList.add('text-green-400');
+
+            } catch (error) {
+                console.error('Error parsing XLS file:', error);
+                fileStatus.textContent = 'Error: Could not read file. Please ensure it is a valid .xls or .xlsx file.';
+                fileStatus.classList.remove('text-gray-400');
+                fileStatus.classList.add('text-red-400');
+                parsedData = null;
+            }
+        };
+
+        reader.onerror = () => {
+             fileStatus.textContent = 'Error reading file.';
+             fileStatus.classList.add('text-red-400');
+             parsedData = null;
+        };
+
+        reader.readAsArrayBuffer(file);
+    });
+
+    // Listen for generate button click
     generateBtn.addEventListener('click', handleGeneration);
 
     async function handleGeneration() {
-        const prompt = promptInput.value.trim();
-        if (!prompt || GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
-            alert('Please enter a prompt and your Gemini API key in the HTML file.');
+        const brief = promptInput.value.trim();
+
+        if (GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
+            alert('Please paste your Gemini API key into the index.html file to use this tool.');
+            return;
+        }
+
+        if (!parsedData) {
+            alert('Please upload an XLS or XLSX file first.');
+            return;
+        }
+
+        if (!brief) {
+            alert('Please provide a brief for the AI.');
             return;
         }
 
         setLoadingState(true);
+        resultsContainer.classList.remove('hidden');
+        summaryResponseEl.innerHTML = '<p>Generating insights... This may take a moment.</p>';
 
         try {
             const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-            // 1. Get the main response
-            const mainResult = await model.generateContent(prompt);
-            const mainResponse = await mainResult.response;
-            const geminiResponseText = mainResponse.text().replace(/\n/g, '<br>');
+            // Construct the master prompt
+            const masterPrompt = `
+                You are an expert data analyst. A user has provided a dataset (in CSV format) from an Excel file and a brief. 
+                Your task is to analyze the data and provide a summary that directly answers the user's brief.
+                Base your entire analysis *only* on the data provided.
 
-            // 2. Get the summary response
-            const summaryPrompt = `Based on the following text, provide a concise, strategic summary for a marketing team. Highlight key takeaways and content opportunities. Format the output as simple HTML paragraphs and lists: \n\n---\n\n${mainResponse.text()}`;
-            const summaryResult = await model.generateContent(summaryPrompt);
-            const summaryResponse = await summaryResult.response;
-            const summaryText = summaryResponse.text().replace(/\n/g, '<br>');
+                ---
+                USER'S BRIEF:
+                "${brief}"
+                ---
+                DATASET (from Excel file, in CSV format):
+                ${parsedData}
+                ---
 
-            geminiResponseEl.innerHTML = geminiResponseText;
+                Please provide your analysis now.
+            `;
+
+            const result = await model.generateContent(masterPrompt);
+            const response = await result.response;
+            const summaryText = response.text().replace(/\n/g, '<br>'); // Simple HTML formatting
+            
             summaryResponseEl.innerHTML = summaryText;
-            updateSOVChart(prompt);
-
-            geminiCard.classList.remove('hidden');
-            insightsSection.classList.remove('hidden');
 
         } catch (error) {
-            console.error('Error fetching insights:', error);
-            geminiResponseEl.innerHTML = `<p class="text-red-400">Error fetching insights from Gemini. Check that your API key is correct and has billing enabled.</p>`;
+            console.error('Error fetching insights from Gemini:', error);
+            summaryResponseEl.innerHTML = `<p class="text-red-400">An error occurred while contacting the Gemini API. Please check your API key and that billing is enabled for your Google project.</p>`;
         } finally {
             setLoadingState(false);
         }
-    }
-    
-    function updateSOVChart(prompt) {
-        const lowerCasePrompt = prompt.toLowerCase();
-        let chartData = null;
-        for (const key in sovData) {
-            if (lowerCasePrompt.includes(key)) { chartData = sovData[key]; break; }
-        }
-        if (sovChart) { sovChart.destroy(); }
-        if (chartData) {
-            sovCard.classList.remove('hidden');
-            const ctx = sovChartEl.getContext('2d');
-            sovChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels: chartData.labels, datasets: [{ label: 'Share of Voice', data: chartData.data, backgroundColor: ['rgba(96, 165, 250, 0.7)','rgba(52, 211, 153, 0.7)','rgba(192, 132, 252, 0.7)','rgba(251, 146, 60, 0.7)','rgba(248, 113, 113, 0.7)'], borderColor: '#1F2937', borderWidth: 2 }] },
-                options: { responsive: true, plugins: { legend: { position: 'top', labels: { color: '#D1D5DB' } } } }
-            });
-        } else { sovCard.classList.add('hidden'); }
     }
     
     function setLoadingState(isLoading) {
         generateBtn.disabled = isLoading;
         generateBtn.classList.toggle('opacity-50', isLoading);
         generateBtn.classList.toggle('cursor-not-allowed', isLoading);
-        buttonText.textContent = isLoading ? 'Generating...' : 'Generate Insights';
+        buttonText.textContent = isLoading ? 'Analyzing...' : 'Generate Summary';
         buttonIcon.innerHTML = isLoading ? `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>` : `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
     }
 </script>
