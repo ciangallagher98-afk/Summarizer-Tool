@@ -320,7 +320,7 @@
             summaryText = summaryText.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
             summaryText = summaryText.replace(/^- (.*)/gm, '<li class="ml-4">$1</li>'); // List items
             summaryText = summaryText.replace(/<li>(.*?)<\/li>/g, '<ul><li>$1</li></ul>'); // Wrap lists
-            summaryText = summaryText.replace(/<\/ul>\n<ul>/g, ''); // Fix consecutive lists
+            summaryText = summaryType.replace(/<\/ul>\n<ul>/g, ''); // Fix consecutive lists
             summaryText = summaryText.replace(/\n/g, '<br>'); // Newlines
             summaryText = summaryText.replace(/<br><ul>/g, '<ul>'); // Fix list spacing
             summaryText = summaryText.replace(/<\/ul><br>/g, '</ul>'); // Fix list spacing
@@ -361,7 +361,7 @@
         // Animate in
         setTimeout(() => {
             alertBox.classList.remove('translate-x-full');
-            alertBox.classList.Add('translate-x-0');
+            alertBox.classList.add('translate-x-0'); // <-- This was the typo (was .Add)
         }, 10);
 
         // Animate out after 3 seconds
