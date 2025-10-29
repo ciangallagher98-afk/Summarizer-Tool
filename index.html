@@ -320,7 +320,7 @@
             summaryText = summaryText.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
             summaryText = summaryText.replace(/^- (.*)/gm, '<li class="ml-4">$1</li>'); // List items
             summaryText = summaryText.replace(/<li>(.*?)<\/li>/g, '<ul><li>$1</li></ul>'); // Wrap lists
-            summaryText = summaryType.replace(/<\/ul>\n<ul>/g, ''); // Fix consecutive lists
+            summaryText = summaryText.replace(/<\/ul>\n<ul>/g, ''); // Fix consecutive lists <-- This was the typo (was summaryType)
             summaryText = summaryText.replace(/\n/g, '<br>'); // Newlines
             summaryText = summaryText.replace(/<br><ul>/g, '<ul>'); // Fix list spacing
             summaryText = summaryText.replace(/<\/ul><br>/g, '</ul>'); // Fix list spacing
